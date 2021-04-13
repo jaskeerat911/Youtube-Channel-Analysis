@@ -20,18 +20,18 @@ async function main() {
     let channelUrl = await tab.evaluate(function (ele) {
         return ele.getAttribute('href');
     }, channel);
-    
-    channelDetails("https://www.youtube.com/" + channelUrl, tab);
+
+    channelDetails("https://www.youtube.com/" + channelUrl, tab, browser);
 }
 
-async function channelDetails(url, tab) {
+async function channelDetails(url, tab, browser) {
     await tab.goto(url);
     await tab.waitForSelector("div#meta > #channel-name > div > div> #text");
     let channelTitle = await tab.$("div#meta > #channel-name > div > div> #text");
     channelData['ChannelName'] = await tab.evaluate(function (ele) {
         return ele.textContent;
     }, channelTitle);
-    
+
     let subscriberCount = await tab.$("div#meta > #subscriber-count");
     channelData['Subscribers'] = await tab.evaluate(function (ele) {
         return ele.textContent;
@@ -42,42 +42,32 @@ async function channelDetails(url, tab) {
     channelData['TotalViews'] = await tab.evaluate(function (ele) {
         return ele.textContent;
     }, viewsCount);
-    
+
     await tab.goto(url + "/Videos");
-    await tab.waitForSelector("#items > ytd-continuation-item-renderer", { visible: true });
-    let videosCount = await tab.$$("#items > ytd-grid-video-renderer");
-    
-    for (let i = 0; i < videosCount.length; i++){
-        let video = await tab.$$("#thumbnail");
-        let videoUrl = "https://www.youtube.com/";
+    await tab.waitForSelector("a#thumbnail[href]", { visible: true });
+    let videosCount = await tab.$$("a#thumbnail[href]");
+    console.log(videosCount.length);
+    for (let i = 0; i < videosCount.length; i++) {
+        let videoUrl = "https://www.youtube.com";
         videoUrl += await tab.evaluate(function (ele) {
             return ele.getAttribute("href");
-        })
-        console.log(videoUrl);
+        }, videosCount[i]);
+
+        videoDetail(videoUrl, tab);
+        // await new Promise(function (resolve, reject) {
+        //     setTimeout(resolve, 1000);
+        // })
     }
-
-    // console.log(channelData);
-
     // await tab.close();
 }
 
-async function autoScroll(page){
-    await page.evaluate(async () => {
-        await new Promise((resolve, reject) => {
-            var totalHeight = 0;
-            var distance = 2000;
-            var timer = setInterval(() => {
-                var scrollHeight = document.body.scrollHeight;
-                window.scrollBy(0, distance);
-                totalHeight += distance;
-
-                if(totalHeight >= scrollHeight){
-                    clearInterval(timer);
-                    resolve();
-                }
-            }, 100);
-        });
-    });
+async function videoDetail(url, tab) {
+    // let tab2 = await browser.newPage();
+    await tab.goto(url);
+    await tab.waitForNavigation({ waitUntil: "networkidle0" });
+    await tab.waitForSelector(".yt-simple-endpoint.style-scope.ytd-toggle-button-renderer > #text", { visible: true });
+    let likeDislike = await tab.$$(".yt-simple-endpoint.style-scope.ytd-toggle-button-renderer > #text");
+    console.log(likeDislike.length);
 }
 
 main();
