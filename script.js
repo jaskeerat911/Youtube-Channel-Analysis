@@ -43,31 +43,55 @@ async function channelDetails(url, tab, browser) {
         return ele.textContent;
     }, viewsCount);
 
-    await tab.goto(url + "/Videos");
-    await tab.waitForSelector("a#thumbnail[href]", { visible: true });
+    await tab.goto(url + "/Videos?sort=p");
     let videosCount = await tab.$$("a#thumbnail[href]");
-    console.log(videosCount.length);
-    for (let i = 0; i < videosCount.length; i++) {
+    let videosUrl = [];
+    for (let i = 0; i < 10; i++) {
         let videoUrl = "https://www.youtube.com";
         videoUrl += await tab.evaluate(function (ele) {
             return ele.getAttribute("href");
-        }, videosCount[i]);
+        }, videosCount[i]);  
 
-        videoDetail(videoUrl, tab);
-        // await new Promise(function (resolve, reject) {
-        //     setTimeout(resolve, 1000);
-        // })
+        videosUrl.push(videoUrl);
     }
-    // await tab.close();
+    videoDetail(videosUrl, tab);
 }
 
-async function videoDetail(url, tab) {
-    // let tab2 = await browser.newPage();
-    await tab.goto(url);
-    await tab.waitForNavigation({ waitUntil: "networkidle0" });
-    await tab.waitForSelector(".yt-simple-endpoint.style-scope.ytd-toggle-button-renderer > #text", { visible: true });
-    let likeDislike = await tab.$$(".yt-simple-endpoint.style-scope.ytd-toggle-button-renderer > #text");
-    console.log(likeDislike.length);
+async function videoDetail(urls, tab) {
+    let videoDetails = [];
+    for (let i = 0; i < 2;i++) {
+        await tab.goto(urls[i]);
+        
+        await tab.waitForSelector(".view-count.style-scope.ytd-video-view-count-renderer", { visible: true });
+        let vidViewsCount = await tab.$(".view-count.style-scope.ytd-video-view-count-renderer");
+        let vidViews = await tab.evaluate(function (ele) {
+            return ele.textContent;
+        }, vidViewsCount);
+
+        let title = await tab.$("yt-formatted-string.style-scope.ytd-video-primary-info-renderer:nth-child(1)");
+        let vidTitle = await tab.evaluate(function (ele) {
+            return ele.textContent;
+        }, title);
+
+        let likeDislike = await tab.$$(".yt-simple-endpoint.style-scope.ytd-toggle-button-renderer > #text");
+        let likes = await tab.evaluate(function (ele) {
+            return ele.textContent;
+        }, likeDislike[0]);
+
+        let vidInfo = {
+            'vidId': i,
+            'vidTitle' : vidTitle,
+            'vidViews': vidViews,
+            'vidLikes': likes,
+            'vidURL': urls[i]
+        };
+
+        videoDetails.push(vidInfo);
+    }
+
+    console.log(videoDetails);
+    await tab.close();
 }
+
 
 main();
