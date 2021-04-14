@@ -1,4 +1,5 @@
 const puppy = require("puppeteer");
+const fs = require("fs");
 
 let channelName = process.argv[2];
 
@@ -59,7 +60,7 @@ async function channelDetails(url, tab, browser) {
 
 async function videoDetail(urls, tab) {
     let videoDetails = [];
-    for (let i = 0; i < 2;i++) {
+    for (let i = 0; i < urls.length; i++) {
         await tab.goto(urls[i]);
         
         await tab.waitForSelector(".view-count.style-scope.ytd-video-view-count-renderer", { visible: true });
@@ -88,8 +89,11 @@ async function videoDetail(urls, tab) {
 
         videoDetails.push(vidInfo);
     }
+    
+    channelData['VideoDetails'] = videoDetails;
 
-    console.log(videoDetails);
+    fs.writeFileSync("channelData.json", JSON.stringify(channelData));
+
     await tab.close();
 }
 
